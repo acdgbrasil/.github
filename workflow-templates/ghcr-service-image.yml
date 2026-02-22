@@ -25,7 +25,6 @@ jobs:
       registry: ${{ vars.REGISTRY != '' && vars.REGISTRY || 'ghcr.io' }}
       image_namespace: ${{ vars.IMAGE_NAMESPACE != '' && vars.IMAGE_NAMESPACE || 'acdg' }}
       push: ${{ github.event_name != 'pull_request' }}
-    secrets: inherit
 
   publish-summary:
     name: Publish summary

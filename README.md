@@ -21,6 +21,27 @@ Repositório central de padrões e automações compartilhadas da organização 
 - Tags: `sha-<commit>`, `vX.Y.Z`, `latest` (somente `main`)
 - Produção: sempre por digest (`@sha256:...`)
 
+## Padrão de secrets em workflows
+
+- Não use `secrets: inherit` em `workflow_call`.
+- Não use `secrets.*` fora destes três segredos de organização:
+  - `ACDG_ORG_BW_SM_ACCESS_TOKEN_DEV`
+  - `ACDG_ORG_BW_SM_ACCESS_TOKEN_STG`
+  - `ACDG_ORG_BW_SM_ACCESS_TOKEN_PROD`
+- Para autenticar no GHCR, use `${{ github.token }}` (não `${{ secrets.GITHUB_TOKEN }}`).
+- Para buscar credenciais de aplicação, use `bitwarden/sm-action@v2`:
+
+```yaml
+- name: Get Secrets (Bitwarden)
+  uses: bitwarden/sm-action@v2
+  with:
+    access_token: ${{ secrets.ACDG_ORG_BW_SM_ACCESS_TOKEN_DEV }}
+    base_url: https://vault.bitwarden.com
+    secrets: |
+      <secret-id-1> > SECRET_NAME_1
+      <secret-id-2> > SECRET_NAME_2
+```
+
 ## Como usar em um microserviço
 
 1. Adicione o workflow template `GHCR Service Image`.

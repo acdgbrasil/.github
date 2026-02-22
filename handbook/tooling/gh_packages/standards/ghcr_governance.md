@@ -49,8 +49,16 @@ Padrao obrigatorio em jobs de publicacao:
   - `packages: write`
 
 Autenticacao:
-- dentro do GitHub Actions: `${{ secrets.GITHUB_TOKEN }}`
+- dentro do GitHub Actions: `${{ github.token }}`
 - `PAT (classic)` somente para uso local/CLI quando realmente necessario.
+
+Padrao de segredos para workflows:
+- nao usar `secrets: inherit`
+- `secrets.*` so pode referenciar:
+  - `ACDG_ORG_BW_SM_ACCESS_TOKEN_DEV`
+  - `ACDG_ORG_BW_SM_ACCESS_TOKEN_STG`
+  - `ACDG_ORG_BW_SM_ACCESS_TOKEN_PROD`
+- para carregar segredos de aplicacao, usar `bitwarden/sm-action@v2`
 
 Implementado em:
 - `.github/workflows/reusable-ghcr-build-push.yml`
@@ -76,6 +84,10 @@ Variables (Organization):
 Secrets:
 - apenas integracoes externas (exemplo: Bitwarden, cloud providers).
 - evitar duplicacao por repositorio quando existir alternativa org-level.
+- para Bitwarden, padronizar exclusivamente:
+  - `ACDG_ORG_BW_SM_ACCESS_TOKEN_DEV`
+  - `ACDG_ORG_BW_SM_ACCESS_TOKEN_STG`
+  - `ACDG_ORG_BW_SM_ACCESS_TOKEN_PROD`
 
 ## 7. Fluxo de release
 

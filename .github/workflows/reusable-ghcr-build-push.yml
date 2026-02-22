@@ -25,7 +25,7 @@ on:
       image_namespace:
         description: Registry namespace (organization/user).
         required: false
-        default: acdg
+        default: acdgbrasil
         type: string
       platforms:
         description: Target image platforms.

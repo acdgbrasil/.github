@@ -1,0 +1,57 @@
+name: Feature request
+description: Proposta de nova capacidade de produto ou engenharia.
+title: "[FEATURE] "
+labels: ["type:feature", "needs-triage"]
+body:
+  - type: input
+    id: problem
+    attributes:
+      label: Problema que queremos resolver
+      placeholder: Descreva a dor atual de forma objetiva.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposta de solucao
+      placeholder: Descreva a solucao proposta e principais fluxos.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: repo-group
+    attributes:
+      label: Divisao de repositorios impactada
+      options:
+        - Domain Services
+        - Shared Platform
+        - Experience Apps
+        - Platform Operations
+        - Knowledge Hub
+    validations:
+      required: true
+
+  - type: dropdown
+    id: handbook-area
+    attributes:
+      label: Area do handbook relacionada
+      options:
+        - codebase
+        - process
+        - quality
+        - cicd
+        - principles
+        - tooling
+        - reports
+        - references
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Criterios de aceite
+      placeholder: Liste condicoes objetivas para considerar a entrega pronta.
+    validations:
+      required: true

@@ -1,0 +1,148 @@
+name: Reusable GHCR Build and Push
+
+on:
+  workflow_call:
+    inputs:
+      service:
+        description: Service name used in the image name (ghcr.io/<namespace>/<service>).
+        required: true
+        type: string
+      context:
+        description: Docker build context.
+        required: false
+        default: .
+        type: string
+      dockerfile:
+        description: Dockerfile path.
+        required: false
+        default: Dockerfile
+        type: string
+      registry:
+        description: Container registry hostname.
+        required: false
+        default: ghcr.io
+        type: string
+      image_namespace:
+        description: Registry namespace (organization/user).
+        required: false
+        default: acdg
+        type: string
+      platforms:
+        description: Target image platforms.
+        required: false
+        default: linux/amd64
+        type: string
+      push:
+        description: Push image to registry when true.
+        required: false
+        default: true
+        type: boolean
+    outputs:
+      image:
+        description: Fully qualified image name.
+        value: ${{ jobs.build.outputs.image }}
+      digest:
+        description: Published image digest.
+        value: ${{ jobs.build.outputs.digest }}
+      tags:
+        description: Computed image tags.
+        value: ${{ jobs.build.outputs.tags }}
+
+jobs:
+  build:
+    name: Build and publish image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.export.outputs.image }}
+      digest: ${{ steps.export.outputs.digest }}
+      tags: ${{ steps.export.outputs.tags }}
+    env:
+      IMAGE_NAME: ${{ inputs.registry }}/${{ inputs.image_namespace }}/${{ inputs.service }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Validate required OCI labels
+        shell: bash
+        run: |
+          set -euo pipefail
+          dockerfile_path="${{ inputs.dockerfile }}"
+
+          if [[ ! -f "${dockerfile_path}" ]]; then
+            echo "Dockerfile not found at ${dockerfile_path}" >&2
+            exit 1
+          fi
+
+          required_labels=(
+            "org.opencontainers.image.source"
+            "org.opencontainers.image.description"
+            "org.opencontainers.image.licenses"
+          )
+
+          for label in "${required_labels[@]}"; do
+            if ! grep -Fq "${label}" "${dockerfile_path}"; then
+              echo "Missing required OCI label in ${dockerfile_path}: ${label}" >&2
+              exit 1
+            fi
+          done
+
+      - name: Validate release tag format
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF#refs/tags/}"
+          if [[ ! "${tag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid release tag '${tag}'. Expected format: vX.Y.Z" >&2
+            exit 1
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to registry
+        if: inputs.push
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ inputs.registry }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=sha-${{ github.sha }}
+            type=ref,event=tag,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Build and push image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ inputs.context }}
+          file: ${{ inputs.dockerfile }}
+          platforms: ${{ inputs.platforms }}
+          push: ${{ inputs.push }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Export outputs
+        id: export
+        shell: bash
+        run: |
+          {
+            echo "image=${IMAGE_NAME}"
+            echo "digest=${{ steps.build.outputs.digest }}"
+            echo "tags<<EOF"
+            echo "${{ steps.meta.outputs.tags }}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"

@@ -1,0 +1,55 @@
+name: Technical task
+description: Tarefa tecnica de plataforma, operacao, qualidade ou manutencao.
+title: "[TASK] "
+labels: ["type:task", "needs-triage"]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Tipo de tarefa
+      options:
+        - Refactor
+        - CI/CD
+        - Infra
+        - Security hardening
+        - Performance
+        - Documentation
+    validations:
+      required: true
+
+  - type: dropdown
+    id: repo-group
+    attributes:
+      label: Divisao impactada
+      options:
+        - Domain Services
+        - Shared Platform
+        - Experience Apps
+        - Platform Operations
+        - Knowledge Hub
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto
+      placeholder: Qual problema tecnico precisamos resolver?
+    validations:
+      required: true
+
+  - type: textarea
+    id: plan
+    attributes:
+      label: Plano de execucao
+      placeholder: Etapas principais, riscos e dependencias.
+    validations:
+      required: true
+
+  - type: textarea
+    id: done
+    attributes:
+      label: Definition of Done
+      placeholder: O que precisa estar validado para concluir?
+    validations:
+      required: true

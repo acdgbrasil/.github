@@ -1,0 +1,11 @@
+{
+  "name": "GHCR Service Image",
+  "description": "Build and publish a Docker image to GitHub Container Registry with standard ACDG tags and digest output.",
+  "iconName": "docker",
+  "categories": [
+    "Docker"
+  ],
+  "filePatterns": [
+    "Dockerfile$"
+  ]
+}

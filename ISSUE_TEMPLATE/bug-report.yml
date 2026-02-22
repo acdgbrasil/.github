@@ -1,0 +1,56 @@
+name: Bug report
+description: Reporte de falha funcional, tecnica ou de regressao.
+title: "[BUG] "
+labels: ["type:bug", "needs-triage"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area principal
+      options:
+        - codebase
+        - process
+        - quality
+        - cicd
+        - principles
+        - tooling
+        - reports
+        - references
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Descricao do bug
+      placeholder: O que ocorreu e qual comportamento era esperado?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Passos para reproduzir
+      placeholder: "1. ...\n2. ...\n3. ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidencias
+      placeholder: Logs, screenshots, payloads ou links de pipeline.
+
+  - type: input
+    id: version
+    attributes:
+      label: Versao/commit afetado
+      placeholder: ex. v1.2.3 ou SHA curto
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impacto
+      placeholder: Qual impacto em usuarios, negocio ou operacao?
+    validations:
+      required: true

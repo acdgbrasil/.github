@@ -1,0 +1,6 @@
+{
+  "name": "Auto Version (Conventional Commits)",
+  "description": "Automatically creates SemVer git tags from conventional commit messages on push to main. feat: bumps minor, fix: bumps patch, breaking change bumps major.",
+  "iconName": "tag",
+  "categories": ["Continuous Integration"]
+}

@@ -1,0 +1,58 @@
+name: Reusable Kodus Review Gate
+
+on:
+  workflow_call:
+    inputs:
+      fail_on:
+        description: "Minimum severity to fail the build (critical, error, warning, info)"
+        required: false
+        default: "critical"
+        type: string
+      fast:
+        description: "Use fast mode (lighter checks)"
+        required: false
+        default: "false"
+        type: string
+    secrets:
+      KODUS_TEAM_KEY:
+        description: "Kodus team key for authentication"
+        required: true
+
+jobs:
+  review:
+    name: Kodus AI Review
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+
+      - name: Authenticate Kodus
+        env:
+          KODUS_TEAM_KEY: ${{ secrets.KODUS_TEAM_KEY }}
+        run: npx @kodus/cli auth team-key --key "$KODUS_TEAM_KEY"
+
+      - name: Run Kodus Review
+        run: |
+          ARGS="--branch ${{ github.event.pull_request.base.ref || 'main' }} --fail-on ${{ inputs.fail_on }} --format markdown"
+          if [[ "${{ inputs.fast }}" == "true" ]]; then
+            ARGS="$ARGS --fast"
+          fi
+          npx @kodus/cli review $ARGS | tee kodus-report.md
+
+      - name: Upload review report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: kodus-review
+          path: kodus-report.md
+          if-no-files-found: ignore
+          retention-days: 14

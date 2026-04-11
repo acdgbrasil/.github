@@ -1,0 +1,164 @@
+name: Reusable PR Size Guard
+
+on:
+  workflow_call:
+    inputs:
+      warn_lines:
+        description: "Line count threshold for warning"
+        required: false
+        default: 400
+        type: number
+      fail_lines:
+        description: "Line count threshold for failure"
+        required: false
+        default: 800
+        type: number
+      warn_files:
+        description: "File count threshold for warning"
+        required: false
+        default: 15
+        type: number
+      fail_files:
+        description: "File count threshold for failure"
+        required: false
+        default: 30
+        type: number
+      ignore_patterns:
+        description: "Newline-separated glob patterns to exclude from count (e.g. lockfiles, generated code)"
+        required: false
+        default: |
+          *.lock
+          *.resolved
+          package-lock.json
+          Packages.resolved
+          *.generated.*
+          *.g.dart
+          *.freezed.dart
+        type: string
+
+jobs:
+  size-check:
+    name: PR Size Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          fetch-depth: 0
+
+      - name: Check PR size
+        id: check
+        env:
+          WARN_LINES: ${{ inputs.warn_lines }}
+          FAIL_LINES: ${{ inputs.fail_lines }}
+          WARN_FILES: ${{ inputs.warn_files }}
+          FAIL_FILES: ${{ inputs.fail_files }}
+          IGNORE_PATTERNS: ${{ inputs.ignore_patterns }}
+        run: |
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.event.pull_request.head.sha }}"
+
+          DIFF_STAT=$(git diff --stat "$BASE".."$HEAD")
+
+          EXCLUDE_ARGS=""
+          while IFS= read -r pattern; do
+            pattern=$(echo "$pattern" | xargs)
+            [ -z "$pattern" ] && continue
+            EXCLUDE_ARGS="$EXCLUDE_ARGS :(exclude)$pattern"
+          done <<< "$IGNORE_PATTERNS"
+
+          CHANGED_FILES=$(eval git diff --name-only "$BASE".."$HEAD" -- . $EXCLUDE_ARGS | wc -l | xargs)
+          CHANGED_LINES=$(eval git diff --numstat "$BASE".."$HEAD" -- . $EXCLUDE_ARGS | awk '{ added += $1; removed += $2 } END { print added + removed }')
+          CHANGED_LINES=${CHANGED_LINES:-0}
+
+          echo "files=$CHANGED_FILES" >> "$GITHUB_OUTPUT"
+          echo "lines=$CHANGED_LINES" >> "$GITHUB_OUTPUT"
+
+          echo "## PR Size Report" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Metric | Count | Warn | Limit |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|--------|------:|-----:|------:|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Lines changed | **$CHANGED_LINES** | $WARN_LINES | $FAIL_LINES |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Files changed | **$CHANGED_FILES** | $WARN_FILES | $FAIL_FILES |" >> "$GITHUB_STEP_SUMMARY"
+
+          VERDICT="ok"
+
+          if [ "$CHANGED_LINES" -ge "$FAIL_LINES" ] || [ "$CHANGED_FILES" -ge "$FAIL_FILES" ]; then
+            VERDICT="fail"
+          elif [ "$CHANGED_LINES" -ge "$WARN_LINES" ] || [ "$CHANGED_FILES" -ge "$WARN_FILES" ]; then
+            VERDICT="warn"
+          fi
+
+          echo "verdict=$VERDICT" >> "$GITHUB_OUTPUT"
+
+          if [ "$VERDICT" = "fail" ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "> **PR bloqueada por tamanho.** Divida em PRs menores para facilitar review e reduzir risco." >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$VERDICT" = "warn" ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "> **Aviso:** PR grande. Considere dividir se possivel." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Comment on PR
+        if: steps.check.outputs.verdict != 'ok'
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
+        with:
+          script: |
+            const verdict = '${{ steps.check.outputs.verdict }}';
+            const lines = ${{ steps.check.outputs.lines }};
+            const files = ${{ steps.check.outputs.files }};
+
+            const icon = verdict === 'fail' ? '🚫' : '⚠️';
+            const title = verdict === 'fail'
+              ? 'PR bloqueada — tamanho excede o limite'
+              : 'PR grande — considere dividir';
+
+            const body = [
+              `## ${icon} ${title}`,
+              '',
+              '| Metrica | Contagem | Aviso | Limite |',
+              '|---------|-------:|------:|-------:|',
+              `| Linhas alteradas | **${lines}** | ${{ inputs.warn_lines }} | ${{ inputs.fail_lines }} |`,
+              `| Arquivos alterados | **${files}** | ${{ inputs.warn_files }} | ${{ inputs.fail_files }} |`,
+              '',
+              verdict === 'fail'
+                ? '> Divida esta PR em partes menores. PRs grandes aumentam risco de bugs, dificultam review e podem causar falhas no Kody.'
+                : '> Esta PR esta no limite. Se possivel, considere dividir para facilitar o review.',
+              '',
+              '*Gerado por PR Size Guard*'
+            ].join('\n');
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('Gerado por PR Size Guard')
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: Fail if over limit
+        if: steps.check.outputs.verdict == 'fail'
+        run: |
+          echo "::error::PR excede o limite de tamanho (${{ steps.check.outputs.lines }} linhas, ${{ steps.check.outputs.files }} arquivos). Divida em PRs menores."
+          exit 1

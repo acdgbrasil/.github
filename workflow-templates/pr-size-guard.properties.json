@@ -1,0 +1,6 @@
+{
+  "name": "PR Size Guard",
+  "description": "Blocks PRs that exceed line or file count limits. Warns at 400 lines / 15 files, fails at 800 lines / 30 files. Excludes lockfiles and generated code.",
+  "iconName": "shield-check",
+  "categories": ["Pull Requests", "Quality"]
+}

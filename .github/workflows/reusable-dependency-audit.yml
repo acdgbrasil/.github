@@ -1,0 +1,62 @@
+name: Reusable Dependency Audit
+
+on:
+  workflow_call:
+    inputs:
+      fail_on_severity:
+        description: "Minimum vulnerability severity to fail (low, moderate, high, critical)"
+        required: false
+        default: "high"
+        type: string
+      ecosystems:
+        description: "Comma-separated ecosystems to audit (npm, pip, cargo, swift, pub)"
+        required: false
+        default: ""
+        type: string
+
+jobs:
+  audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Dependency Review (PR only)
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@da24556b548a50705dd671f47852072ea4c105d7 # v4
+        with:
+          fail-on-severity: ${{ inputs.fail_on_severity }}
+          deny-licenses: AGPL-3.0, GPL-3.0
+          comment-summary-in-pr: always
+
+      - name: npm audit
+        if: inputs.ecosystems == '' || contains(inputs.ecosystems, 'npm')
+        continue-on-error: true
+        run: |
+          if [ -f "package-lock.json" ] || [ -f "package.json" ]; then
+            echo "## npm audit" >> "$GITHUB_STEP_SUMMARY"
+            npm audit --audit-level=${{ inputs.fail_on_severity }} 2>&1 | tee -a "$GITHUB_STEP_SUMMARY" || true
+          else
+            echo "No package.json found, skipping npm audit."
+          fi
+
+      - name: Swift package audit
+        if: inputs.ecosystems == '' || contains(inputs.ecosystems, 'swift')
+        continue-on-error: true
+        run: |
+          if [ -f "Package.swift" ] || [ -f "Package.resolved" ]; then
+            echo "## Swift dependencies" >> "$GITHUB_STEP_SUMMARY"
+            echo "Swift Package Manager does not have a built-in audit command." >> "$GITHUB_STEP_SUMMARY"
+            echo "Dependency review action above covers known CVEs." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: License check summary
+        run: |
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "## License Policy" >> "$GITHUB_STEP_SUMMARY"
+          echo "Denied licenses: AGPL-3.0, GPL-3.0" >> "$GITHUB_STEP_SUMMARY"
+          echo "Review action checks new dependencies on PRs." >> "$GITHUB_STEP_SUMMARY"

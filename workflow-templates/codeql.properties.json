@@ -1,0 +1,6 @@
+{
+  "name": "CodeQL Security Scanning",
+  "description": "Runs GitHub CodeQL static analysis weekly and on PRs. Detects security vulnerabilities and code quality issues. Change the language input to match your project (javascript-typescript, swift, python).",
+  "iconName": "shield-lock",
+  "categories": ["Security", "Code Quality"]
+}

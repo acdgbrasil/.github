@@ -1,0 +1,6 @@
+{
+  "name": "Dependency Audit",
+  "description": "Audits dependencies for known vulnerabilities and denied licenses (AGPL-3.0, GPL-3.0) on PRs and weekly schedule. Fails on high+ severity by default.",
+  "iconName": "package",
+  "categories": ["Security", "Dependencies"]
+}

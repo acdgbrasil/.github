@@ -1,0 +1,17 @@
+name: Dependency Audit
+
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 7 * * 1'
+
+jobs:
+  audit:
+    name: Dependency audit
+    uses: acdgbrasil/.github/.github/workflows/reusable-dependency-audit.yml@main
+    with:
+      fail_on_severity: high
+    permissions:
+      contents: read
+      security-events: write

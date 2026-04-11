@@ -1,0 +1,19 @@
+name: CodeQL Security Scanning
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * 1'
+
+jobs:
+  codeql:
+    name: CodeQL analysis
+    uses: acdgbrasil/.github/.github/workflows/reusable-codeql.yml@main
+    with:
+      language: javascript-typescript
+    permissions:
+      security-events: write
+      contents: read

@@ -1,0 +1,41 @@
+name: Sync AI Config Files
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'templates/**'
+      - 'sync.yml'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    name: Sync AI config to repos
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Sync files
+        uses: BetaHuhn/repo-file-sync-action@5e3aba56a6c281f2b5c82bee71e46b794e367a47 # v1
+        with:
+          GH_PAT: ${{ github.token }}
+          CONFIG_PATH: sync.yml
+          PR_LABELS: ai-config
+          COMMIT_PREFIX: "chore(ai):"
+          COMMIT_BODY: "Synced from acdgbrasil/.github/templates/ — source of truth for AI coding agent instructions."
+          PR_BODY: |
+            ## AI Config Sync
+
+            Arquivos de configuracao de AI coding agents atualizados a partir do repositorio central `.github/templates/`.
+
+            **Source of truth:** `acdgbrasil/.github/templates/`
+
+            Revise as mudancas e faca merge quando pronto.
+
+            ---
+            *Gerado automaticamente por [repo-file-sync-action](https://github.com/BetaHuhn/repo-file-sync-action)*

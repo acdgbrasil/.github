@@ -1,0 +1,69 @@
+# File Sync Configuration
+# Used by BetaHuhn/repo-file-sync-action to keep AI config files
+# synchronized across all organization repositories.
+#
+# Source of truth: acdgbrasil/.github/templates/
+# Target: AGENTS.md in each repository root
+#
+# How it works:
+# 1. Edit templates/ in this repo
+# 2. Push to main
+# 3. Workflow opens PRs in target repos with updated files
+
+# --- Swift backend ---
+- files:
+    - source: templates/AGENTS.md
+      dest: AGENTS.md
+    - source: templates/overrides/swift.md
+      dest: .ai/override-swift.md
+  repos: |
+    acdgbrasil/svc-social-care
+
+# --- Bun/TypeScript services ---
+- files:
+    - source: templates/AGENTS.md
+      dest: AGENTS.md
+    - source: templates/overrides/bun-typescript.md
+      dest: .ai/override-bun-typescript.md
+  repos: |
+    acdgbrasil/svc-people-context
+
+# --- Flutter/Dart ---
+- files:
+    - source: templates/AGENTS.md
+      dest: AGENTS.md
+    - source: templates/overrides/flutter.md
+      dest: .ai/override-flutter.md
+  repos: |
+    acdgbrasil/app-acdg-system
+
+# --- Next.js ---
+- files:
+    - source: templates/AGENTS.md
+      dest: AGENTS.md
+    - source: templates/overrides/nextjs.md
+      dest: .ai/override-nextjs.md
+  repos: |
+    acdgbrasil/app-conecta-web
+
+# --- Contracts (no stack override, baseline only) ---
+- files:
+    - source: templates/AGENTS.md
+      dest: AGENTS.md
+  repos: |
+    acdgbrasil/contracts
+    acdgbrasil/edge-cloud-infra
+
+# --- Copilot instructions (all repos with code) ---
+- files:
+    - source: templates/copilot-instructions.md
+      dest: .github/copilot-instructions.md
+  repos: |
+    acdgbrasil/svc-social-care
+    acdgbrasil/svc-people-context
+    acdgbrasil/app-acdg-system
+    acdgbrasil/app-conecta-web
+    acdgbrasil/contracts
+    acdgbrasil/edge-cloud-infra
+    acdgbrasil/admin-painel
+    acdgbrasil/conecta-raros-site
